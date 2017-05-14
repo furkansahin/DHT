@@ -27,8 +27,7 @@ class Node:
         # provided message to the server and takes the response
 
         # server_connection = new Connection()
-        message = json.dumps({'ipAddress': ip_address, 'portNum': port_num})
-        response = self.server_connection.connect(message)
+        response = self.server_connection.connect()
         return response
 
     def create_finger_table(self):
