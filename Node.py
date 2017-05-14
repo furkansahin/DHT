@@ -3,92 +3,82 @@ import json
 import bisect
 import hashlib
 
-data_dict = dict()
-id_dictionary = dict()
-finger_table = dict()
-id_set = set()
-node_id = None
-node_ip = None
-server_connection = None
-successor = None
-system_m = None
 
+class Node:
+    def __init__(self):
+        jsonObj = json.loads(
+            "{\"idDictionary\": {\"16\": \"127.0.0.3\", \"32\": \"127.0.0.2\", \"45\": \"127.0.0.4\",\"96\": \"127.0.0.5\",\"112\": \"127.0.0.6\"},\"id\": 80,\"m\": 7, \"ip\":\"127.0.0.1\"}")
+        id_dictionary = jsonObj['idDictionary']
 
-def connect_to_server(ip_address, port_num):
-    # Server connection code will be called in here
+        self.data_dict = dict()
+        self.id_dictionary = jsonObj['idDictionary']
+        self.finger_table = dict()
+        self.id_set = set()
+        self.node_id = jsonObj['id']
+        self.node_ip = jsonObj['ip']
+        self.server_connection = None
+        self.successor = None
+        self.system_m = jsonObj['m']
 
-    # TODO we need a server_connection which has a connect method sending the
-    # provided message to the server and takes the response
+    def connect_to_server(self,ip_address, port_num):
+        # Server connection code will be called in here
 
-    # server_connection = new Connection()
-    message = json.dumps({'ipAddress': ip_address, 'portNum': port_num})
-    response = server_connection.connect(message)
-    return response
+        # TODO we need a server_connection which has a connect method sending the
+        # provided message to the server and takes the response
 
+        # server_connection = new Connection()
+        message = json.dumps({'ipAddress': ip_address, 'portNum': port_num})
+        response = self.server_connection.connect(message)
+        return response
 
-def create_finger_table():
-    id_set = id_dictionary.keys()
-    id_set = [int(x) for x in id_set]
-    id_set.sort()
+    def create_finger_table(self):
+        self.id_set = self.id_dictionary.keys()
+        self.id_set = [int(x) for x in self.id_set]
+        self.id_set.sort()
 
-    successor = bisect.bisect_left(id_set, node_id + 1)
+        self.successor = self.id_set[bisect.bisect_left(self.id_set, self.node_id + 1)]
 
-    for i in range(system_m):
-        num = (id + 2**i) % 2**system_m
-        id_found = bisect.bisect_left(id_set, num)
-        if id_found == len(id_set):
-            raise ValueError('No item found with key at or above: %r' % (id_found,))
-        finger_table[num] = id_set[id_found]
+        for i in range(self.system_m):
+            num = (self.node_id + 2 ** i) % 2 ** self.system_m
+            id_found = bisect.bisect_left(self.id_set, num)
+            if id_found == len(self.id_set):
+                raise ValueError('No item found with key at or above: %r' % (id_found,))
+            self.finger_table[num] = self.id_set[id_found]
 
+    def send_response(self, request_ip, request_key, data):
+        message = json.dumps({'request_key': request_key, 'data': data})
+        self.server_connection.send_message(message, request_ip)
 
-def send_response(request_ip, request_key, data):
-    message = json.dumps({'request_key': request_key, 'data': data})
-    server_connection.send_message(message, request_ip)
+    def pass_request(self, to_node, request_key, request_ip, request_port, sender_id):
+        # TODO we are going to pass the request to the other node
+        5
 
+    def incoming_query(self, request):
+        json_request = json.loads(request)
+        request_ip = json_request['ip']
+        request_port = json_request['port']
+        request_key = json_request['key']
+        sender_id = None
+        if "sender_id" in json_request:
+            sender_id = json_request['sender_id']
+        # if sender_id is None:
+        #     key = hashlib.sha1(request_ip + request_port).hexdigest()
+        #     key = int(key, 16) % 2**system_m
+        request_key = int(request_key)
 
-def pass_request(to_node, request_key, request_ip, request_port, sender_id):
-    #TODO we are going to pass the request to the other node
-    5
-
-
-def incoming_query(request):
-    json_request = json.loads(request)
-    request_ip = json_request['ip']
-    request_port = json_request['port']
-    request_key = json_request['key']
-    sender_id = json_request['sender_id']
-    # if sender_id is None:
-    #     key = hashlib.sha1(request_ip + request_port).hexdigest()
-    #     key = int(key, 16) % 2**system_m
-    if request_key < node_id:
-        if request_key in data_dict:
-            send_response(request_ip, request_key, data_dict[request_key])
+        if request_key in self.data_dict:
+            self.send_response(request_ip, request_key, self.data_dict[request_key])
             return
-        if sender_id is not None and request_key > sender_id:
-            send_response(request_ip, request_key, None)
+        if sender_id is not None and self.node_id > request_key > sender_id:
+            self.send_response(request_ip, request_key, None)
             return
-        elif sender_id is None:
-            to_node = finger_table(bisect.bisect_right(id_set, request_key))
-            if to_node == node_id:
-                to_node == finger_table(node_id + 2**(system_m-1) % 2**system_m )
-            pass_request(to_node, request_key, request_ip, request_port, sender_id)
 
+        sorted_values = self.finger_table.values()
+        sorted_values.sort()
+        index = bisect.bisect(sorted_values, request_key) - 1
+        if index < 0:
+            self.pass_request(self.successor, request_key, request_ip, request_port, self.node_id)
+            return
 
-def main():
-
-
-    ipAddr = sys.argv(0)
-    portNum = sys.argv(1)
-
-    jsonObj = json.loads(connect_to_server(ipAddress=ipAddr, portNum=portNum))
-#    jsonObj = json.loads("{\"idDictionary\": {\"16\": \"127.0.0.1\", \"32\": \"127.0.0.2\", \"45\": \"127.0.0.3\",\"80\": \"127.0.0.4\",\"96\": \"127.0.0.5\",\"112\": \"127.0.0.6\"},\"id\": 80,\"m\": 7}")
-    id_dictionary = jsonObj['idDictionary']
-    node_id = jsonObj['id']
-    system_m = jsonObj['m']
-    node_ip = jsonObj['ip']
-    finger_table = create_finger_table()
-
-
-if __name__=="__main__":
-    main()
-
+        to_node = sorted_values[index]
+        self.pass_request(to_node, request_key, request_ip, request_port, self.node_id)
