@@ -9,16 +9,18 @@ def main():
 
 class Client:
     def __init__(self):
-        self.server = '127.0.0.1'
+        self.server = '207.154.219.184'
         self.port = '2222'
         self.client = btpeer.BTPeer(0, 2224)
 
         self.client.addpeer('server', self.server, self.port)
 
+        self.getIdSet()
+
     def getIdSet(self):
         response = self.client.sendtopeer('server', "PSET", "")
         print ("ID SET: %s" % response)
-        return json.loads(response)
+        return json.loads(response[0][1])
 
     def put(self, key, value):
         id_set = self.getIdSet()
@@ -27,7 +29,7 @@ class Client:
         (ip, port) = id_set(index)
 
         response = self.client.connectandsend(ip, port, "PUTX", key + "///" + value)
-        return json.loads(response)
+        return json.loads(response[0][1])
 
     def get(self, key):
         id_set = self.getIdSet()
@@ -36,7 +38,7 @@ class Client:
         (ip, port) = id_set(index)
 
         response = self.client.connectandsend(ip, port, "GETX", key)
-        return json.loads(response)
+        return json.loads(response[0][1])
 
     def contains(self,key):
         id_set = self.getIdSet()
@@ -45,7 +47,7 @@ class Client:
         (ip, port) = id_set(index)
 
         response = self.client.connectandsend(ip, port, "CONT", key)
-        return json.loads(response)
+        return json.loads(response[0][1])
 
     def remove(self,key):
         id_set = self.getIdSet()
@@ -54,7 +56,7 @@ class Client:
         (ip, port) = id_set(index)
 
         response = self.client.connectandsend(ip, port, "RMVX", key)
-        return json.loads(response)
+        return json.loads(response[0][1])
 
 
 if __name__ == "__main__":
