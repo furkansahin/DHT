@@ -11,7 +11,7 @@ import traceback
 
 def btdebug(msg):
     """ Prints a messsage to the screen with the name of the current thread """
-    print "[%s] %s" % (str(threading.currentThread().getName()), msg)
+    print("[%s] %s" % (str(threading.currentThread().getName()), msg))
 
 
 # ==============================================================================
@@ -33,7 +33,7 @@ class BTPeer:
         Internet host like Google.
 
         """
-        self.debug = 0
+        self.debug = 1
 
         self.maxpeers = int(maxpeers)
         self.serverport = int(serverport)
@@ -360,7 +360,7 @@ class BTPeer:
                                      args=[clientsock])
                 t.start()
             except KeyboardInterrupt:
-                print 'KeyboardInterrupt: stopping mainloop'
+                print('KeyboardInterrupt: stopping mainloop')
                 self.shutdown = True
                 continue
             except:

@@ -3,56 +3,87 @@ import bisect
 import hashlib
 import btpeer
 
+
 def main():
-    Node()
+    n = Node()
+
 
 
 class Node:
     def __init__(self):
 
-        print "Called"
-        jsonObj = json.loads(
-            "{\"idDictionary\": {\"16\": \"127.0.0.3\", \"32\": \"127.0.0.2\", \"45\": \"127.0.0.4\",\"96\": \"127.0.0.5\",\"112\": \"127.0.0.6\"},\"id\": 80,\"m\": 7, \"ip\":\"127.0.0.1\"}")
-        id_dictionary = jsonObj['idDictionary']
+        print("Called")
 
         self.data_dict = dict()
-        self.id_dictionary = jsonObj['idDictionary']
+        self.id_dictionary = dict()
         self.finger_table = dict()
         self.id_set = set()
-        self.node_id = jsonObj['id']
-        self.node_ip = jsonObj['ip']
+        self.node_id = None
+        self.node_ip = None
         self.server_connection = None
         self.successor = None
-        self.system_m = jsonObj['m']
-        self.node = btpeer.BTPeer(0,2223)
+        self.system_m = None
+        self.node = btpeer.BTPeer(0, 2223)
 
-        self.connect_to_server('207.154.219.184','2222')
+        self.connect_to_server('207.154.219.184', '2222')
+        self.node.addhandler('KQUE', self.incoming_query)
+        self.node.addhandler('NEWN', self.new_node)
+        self.create_finger_table()
+        print(self.finger_table)
+        self.node.mainloop()
 
+    def new_node(self, conn, msg):
+        json_response = json.loads(msg[0][1])
+        new_id = json_response['id']
+        new_ip = json_response['ip']
+        self.id_set.add(new_id)
+        self.id_dictionary[new_id] = new_ip
+        self.create_finger_table()
+        print(self.finger_table)
 
-    def connect_to_server(self,ip_address, port_num):
+    def connect_to_server(self, ip_address, port_num):
+        self.node.addpeer('server', ip_address, port_num)
 
-        self.node.addpeer('server',ip_address,port_num)
+        response = self.node.sendtopeer('server', 'swrq', 'SelaminAleykum')
+        print(response)
+        json_response = json.loads(response[0][1])
 
-        response = self.n
-        # Server connection code will be called in here
-
-        # TODO we need a server_connection which has a connect method sending the
-        # provided message to the server and takes the response
-        return response
+        self.id_dictionary = json_response['idDictionary']
+        self.node_id = json_response['id']
+        self.node_ip = json_response['ip']
+        self.system_m = json_response['m']
 
     def create_finger_table(self):
         self.id_set = self.id_dictionary.keys()
         self.id_set = [int(x) for x in self.id_set]
+        self.id_set.append(self.node_id)
         self.id_set.sort()
 
-        self.successor = self.id_set[bisect.bisect_left(self.id_set, self.node_id + 1)]
+        print(self.id_set)
 
+        index = bisect.bisect_left(self.id_set, self.node_id + 1)
+
+        print(index)
+        if index == len(self.id_set):
+            self.successor = self.node_id
+        else:
+            self.successor = self.id_set[index]
+        print("successor= %s", self.successor)
         for i in range(self.system_m):
             num = (self.node_id + 2 ** i) % 2 ** self.system_m
-            id_found = bisect.bisect_left(self.id_set, num)
-            if id_found == len(self.id_set):
+            id_found = bisect.bisect_right(self.id_set, num)
+
+            if len(self.id_set) != 0:
+                id_found = id_found % len(self.id_set)
+
+            print("num: %s AND id_found:%s", num, id_found)
+
+            if len(self.id_set) == 1:
+                self.finger_table[num] = self.node_id
+            elif id_found == len(self.id_set):
                 raise ValueError('No item found with key at or above: %r' % (id_found,))
-            self.finger_table[num] = self.id_set[id_found]
+            else:
+                self.finger_table[num] = self.id_set[id_found]
 
     def send_response(self, request_ip, request_key, data):
         message = json.dumps({'request_key': request_key, 'data': data})
@@ -61,8 +92,8 @@ class Node:
     def pass_request(self, to_node, request_key, request_ip, request_port, sender_id):
         return
 
-    def incoming_query(self, request):
-        json_request = json.loads(request)
+    def incoming_query(self, conn, msg):
+        json_request = json.loads(msg[0][1])
         request_ip = json_request['ip']
         request_port = json_request['port']
         request_key = json_request['key']
@@ -101,6 +132,7 @@ class Node:
 
         to_node = sorted_values[index]
         self.pass_request(to_node, request_key, request_ip, request_port, self.node_id)
+
 
 if __name__ == "__main__":
     main()
