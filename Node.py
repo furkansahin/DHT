@@ -44,7 +44,9 @@ class Node:
     def connect_to_server(self, ip_address, port_num):
         self.node.addpeer('server', ip_address, port_num)
 
-        response = self.node.sendtopeer('server', 'swrq', 'SelaminAleykum')
+        message = json.dumps({"port": self.node.serverport})
+
+        response = self.node.sendtopeer('server', 'swrq', message)
         print(response)
         json_response = json.loads(response[0][1])
 

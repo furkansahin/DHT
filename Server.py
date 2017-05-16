@@ -13,23 +13,23 @@ class Server:
         print("Called")
         self.nodes = dict()
         self.circle_size = circle_size
-        self.node = btpeer.BTPeer(0, 2222);
-
+        self.node = btpeer.BTPeer(0, 2222)
         print(self.node.serverhost)
         self.node.addhandler('SWRQ', self.request_handler)
         self.node.mainloop()
 
     def request_handler(self, conn, msg):
         ip = conn.ip
-        port = conn.port
-        request = "incoming request:%s" % msg
-        print(request)
+        json_response = json.loads(msg)
+        print "Json: %s" % json_response
+        port = json_response['port']
+
         hash = self.calculate_hash(ip)
         message = json.dumps({"ip": ip, "id": hash, "idDictionary": self.nodes, "m": self.circle_size})
 
         for (key, value) in self.nodes.items():
             print(key, value)
-            self.node.sendtopeer(value, 'NEWN', json.dumps({"id": hash, "ip": ip}))
+            self.node.sendtopeer(key, 'NEWN', json.dumps({"id": hash, "ip": ip}))
 
         print(message)
         print("Adding")
