@@ -6,9 +6,7 @@ import hashlib
 
 class Node:
     def __init__(self):
-        jsonObj = json.loads(
-            "{\"idDictionary\": {\"16\": \"127.0.0.3\", \"32\": \"127.0.0.2\", \"45\": \"127.0.0.4\",\"96\": \"127.0.0.5\",\"112\": \"127.0.0.6\"},\"id\": 80,\"m\": 7, \"ip\":\"127.0.0.1\"}")
-        id_dictionary = jsonObj['idDictionary']
+        jsonObj = json.loads("{\"idDictionary\": {\"16\": \"127.0.0.3\", \"32\": \"127.0.0.2\", \"45\": \"127.0.0.4\", \"96\": \"127.0.0.5\",\"112\": \"127.0.0.6\"},\"id\": 80,\"m\": 7, \"ip\":\"127.0.0.1\"}")
 
         self.data_dict = dict()
         self.id_dictionary = jsonObj['idDictionary']
@@ -20,7 +18,7 @@ class Node:
         self.successor = None
         self.system_m = jsonObj['m']
 
-    def connect_to_server(self,ip_address, port_num):
+    def connect_to_server(self, ip_address, port_num):
         # Server connection code will be called in here
 
         # TODO we need a server_connection which has a connect method sending the
@@ -57,27 +55,38 @@ class Node:
         request_ip = json_request['ip']
         request_port = json_request['port']
         request_key = json_request['key']
+        request_val = None
+        if 'request_val' in json_request:
+            request_val = json_request['val']
         sender_id = None
-        if "sender_id" in json_request:
+        if 'sender_id' in json_request:
             sender_id = json_request['sender_id']
         # if sender_id is None:
         #     key = hashlib.sha1(request_ip + request_port).hexdigest()
         #     key = int(key, 16) % 2**system_m
         request_key = int(request_key)
 
-        if request_key in self.data_dict:
-            self.send_response(request_ip, request_key, self.data_dict[request_key])
-            return
-        if sender_id is not None and self.node_id > request_key > sender_id:
-            self.send_response(request_ip, request_key, None)
-            return
+        if request_val is not None:
+            ids = self.finger_table.values()
+            ids.sort()
+            index = bisect.bisect(ids, self.node_id) - 1
+            if index >= 0 and self.node_id > request_key > ids(index):
+                # do the stuff
+                5
+        else:
+            if request_key in self.data_dict:
+                self.send_response(request_ip, request_key, self.data_dict[request_key])
+                return
+            if sender_id is not None and self.node_id > request_key > sender_id:
+                self.send_response(request_ip, request_key, None)
+                return
 
-        sorted_values = self.finger_table.values()
-        sorted_values.sort()
-        index = bisect.bisect(sorted_values, request_key) - 1
-        if index < 0:
-            self.pass_request(self.successor, request_key, request_ip, request_port, self.node_id)
-            return
+            sorted_values = self.finger_table.values()
+            sorted_values.sort()
+            index = bisect.bisect(sorted_values, request_key) - 1
+            if index < 0:
+                self.pass_request(self.successor, request_key, request_ip, request_port, self.node_id)
+                return
 
-        to_node = sorted_values[index]
-        self.pass_request(to_node, request_key, request_ip, request_port, self.node_id)
+            to_node = sorted_values[index]
+            self.pass_request(to_node, request_key, request_ip, request_port, self.node_id)
