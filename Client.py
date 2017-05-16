@@ -28,7 +28,7 @@ class Client:
 
         (ip, port) = id_set(index)
 
-        response = self.client.connectandsend(ip, port, "PUTX", key + "///" + value)
+        response = self.client.connectandsend(ip, port, "PUTX", (key, value))
         return json.loads(response[0][1])
 
     def get(self, key):

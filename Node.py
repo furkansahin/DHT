@@ -28,9 +28,29 @@ class Node:
         self.connect_to_server('207.154.219.184', '2222')
         self.node.addhandler('KQUE', self.incoming_query)
         self.node.addhandler('NEWN', self.new_node)
+        self.node.addhandler('PUTX', self.put_request)
+        self.node.addhandler('GETX', self.get_request)
+        self.node.addhandler('CONT', self.contains_request)
+        self.node.addhandler('RMVX', self.remove_request)
+
         self.create_finger_table()
         print(self.finger_table)
         self.node.mainloop()
+
+
+    def put_request(self,conn,msg):
+        (key, value) = msg
+        return
+
+    def get_request(self, conn, msg):
+        key = msg
+        return
+
+    def contains_request(self, conn, msg):
+        return
+
+    def remove_request(self, conn, msg):
+        return
 
     def new_node(self, conn, msg):
         json_response = json.loads(msg)

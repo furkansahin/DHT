@@ -16,7 +16,7 @@ class Server:
         self.node = btpeer.BTPeer(0, 2222)
         print(self.node.serverhost)
         self.node.addhandler('SWRQ', self.request_handler)
-        self.node.addhandler('CLRQ', self.client_request)
+        self.node.addhandler('PSET', self.client_request)
         self.node.mainloop()
 
     def request_handler(self, conn, msg):
@@ -40,8 +40,11 @@ class Server:
 
         conn.senddata("SWRQ", message)
 
-    def client_request(selfself, conn, msg):
+    def client_request(self, conn, msg):
+        self.node.checklivepeers()
+        keys = self.node.peers.keys()
 
+        conn.senddata('PSET', json.dumps(keys))
 
     def calculate_hash(self, definition):
         hex_hash = hashlib.sha1(definition).hexdigest()
