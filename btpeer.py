@@ -204,7 +204,7 @@ class BTPeer:
     # --------------------------------------------------------------------------
     def removepeerat(self, loc):
         # --------------------------------------------------------------------------
-        removepeer(self, loc)
+        self.removepeer(self, loc)
 
 
 
@@ -262,14 +262,14 @@ class BTPeer:
         Returns None if the message could not be routed.
         """
 
-        if self.router:
+        """if self.router:
             nextpid, host, port = self.router(peerid)
         if not self.router or not nextpid:
             self.__debug('Unable to route %s to %s' % (msgtype, peerid))
-            return None
-        # host,port = self.peers[nextpid]
+            return None"""
+        host,port = self.peers[peerid]
         return self.connectandsend(host, port, msgtype, msgdata,
-                                   pid=nextpid,
+                                   pid=peerid,
                                    waitreply=waitreply)
 
     # --------------------------------------------------------------------------
@@ -347,7 +347,6 @@ class BTPeer:
     def mainloop(self):
         # --------------------------------------------------------------------------
         s = self.makeserversocket(self.serverport)
-        s.settimeout(2)
         self.__debug('Server started: %s (%s:%d)'
                      % (self.myid, self.serverhost, self.serverport))
 
@@ -394,6 +393,8 @@ class BTPeerConnection:
         # any exceptions thrown upwards
 
         self.id = peerid
+        self.ip = host
+        self.port = port
         self.debug = debug
 
         if not sock:
@@ -495,7 +496,7 @@ class BTPeerConnection:
     # --------------------------------------------------------------------------
     def __str__(self):
         # --------------------------------------------------------------------------
-        return "|%s|" % peerid
+        return "|%s|" % self.id
 
 
 

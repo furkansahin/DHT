@@ -1,12 +1,19 @@
-from pyp2p.net import *
 import json
 import bisect
 import hashlib
+import btpeer
+
+def main():
+    Node()
 
 
 class Node:
     def __init__(self):
-        jsonObj = json.loads("{\"idDictionary\": {\"16\": \"127.0.0.3\", \"32\": \"127.0.0.2\", \"45\": \"127.0.0.4\", \"96\": \"127.0.0.5\",\"112\": \"127.0.0.6\"},\"id\": 80,\"m\": 7, \"ip\":\"127.0.0.1\"}")
+
+        print "Called"
+        jsonObj = json.loads(
+            "{\"idDictionary\": {\"16\": \"127.0.0.3\", \"32\": \"127.0.0.2\", \"45\": \"127.0.0.4\",\"96\": \"127.0.0.5\",\"112\": \"127.0.0.6\"},\"id\": 80,\"m\": 7, \"ip\":\"127.0.0.1\"}")
+        id_dictionary = jsonObj['idDictionary']
 
         self.data_dict = dict()
         self.id_dictionary = jsonObj['idDictionary']
@@ -17,15 +24,20 @@ class Node:
         self.server_connection = None
         self.successor = None
         self.system_m = jsonObj['m']
+        self.node = btpeer.BTPeer(0,2223)
 
-    def connect_to_server(self, ip_address, port_num):
+        self.connect_to_server('207.154.219.184','2222')
+
+
+    def connect_to_server(self,ip_address, port_num):
+
+        self.node.addpeer('server',ip_address,port_num)
+
+        response = self.n
         # Server connection code will be called in here
 
         # TODO we need a server_connection which has a connect method sending the
         # provided message to the server and takes the response
-
-        # server_connection = new Connection()
-        response = self.server_connection.connect()
         return response
 
     def create_finger_table(self):
@@ -47,8 +59,7 @@ class Node:
         self.server_connection.send_message(message, request_ip)
 
     def pass_request(self, to_node, request_key, request_ip, request_port, sender_id):
-        # TODO we are going to pass the request to the other node
-        5
+        return
 
     def incoming_query(self, request):
         json_request = json.loads(request)
@@ -88,5 +99,8 @@ class Node:
                 self.pass_request(self.successor, request_key, request_ip, request_port, self.node_id)
                 return
 
-            to_node = sorted_values[index]
-            self.pass_request(to_node, request_key, request_ip, request_port, self.node_id)
+        to_node = sorted_values[index]
+        self.pass_request(to_node, request_key, request_ip, request_port, self.node_id)
+
+if __name__ == "__main__":
+    main()
