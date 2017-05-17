@@ -4,7 +4,8 @@ import btpeer
 
 
 def main():
-    Client()
+    c = Client()
+    c.put(15,5)
 
 
 class Client:
@@ -17,6 +18,7 @@ class Client:
 
         self.getIdSet()
 
+
     def getIdSet(self):
         response = self.client.sendtopeer('server', "PSET", "")
         print ("ID SET: %s" % response)
@@ -24,11 +26,12 @@ class Client:
 
     def put(self, key, value):
         id_set = self.getIdSet()
-        index = random.sample(id_set, 1)
+        index = random.sample(id_set, 1)[0]
 
-        (ip, port) = id_set(index)
+        (ip, port) = (index[0], index[1])
 
-        response = self.client.connectandsend(ip, port, "PUTX", (key, value))
+        response = self.client.connectandsend(ip, port, "PUTX", json.dumps({'key': key, 'value': value, 'check': False}))
+        print(response)
         return json.loads(response[0][1])
 
     def get(self, key):

@@ -26,15 +26,15 @@ class Server:
         port = json_response['port']
 
         hash = self.calculate_hash(ip)
-        message = json.dumps({"ip": ip, "id": hash, "idDictionary": self.nodes, "m": self.circle_size})
+        message = json.dumps({"ip": ip, "id": hash, "idDictionary": self.node.peers, "m": self.circle_size})
 
-        for (key, value) in self.nodes.items():
+        for (key, value) in self.node.peers.items():
             print(key, value)
-            self.node.sendtopeer(value, 'NEWN', json.dumps({"id": hash, "ip": ip}))
+            self.node.sendtopeer(key, 'NEWN', json.dumps({"id": hash, "ip": ip, "port": port}))
 
         print(message)
         print("Adding")
-        self.node.addpeer(ip, ip, port)
+        self.node.addpeer(hash, ip, port)
         self.nodes[hash] = ip
         print("Peers%s" % self.node.getpeerids())
 
@@ -42,7 +42,8 @@ class Server:
 
     def client_request(self, conn, msg):
         self.node.checklivepeers()
-        keys = self.node.peers.keys()
+        print(self.node.peers)
+        keys = self.node.peers.values()
 
         conn.senddata('PSET', json.dumps(keys))
 
