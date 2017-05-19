@@ -25,6 +25,7 @@ class Node:
         self.successor = None
         self.circle_size = None
         self.node = btpeer.BTPeer(0, 2223)
+        self.start = None
 
         self.connect_to_server('207.154.219.184', '2222')
         self.node.addhandler('KQUE', self.incoming_query)
@@ -43,7 +44,7 @@ class Node:
         key = int(hex_hash, 16) % 2 ** self.circle_size
         return key
 
-    def put_request(self,conn,msg):
+    def put_request(self, conn, msg):
         time.sleep(1)
         json_msg = json.loads(msg)
         request_key = json_msg['key']
@@ -54,38 +55,34 @@ class Node:
             request_key = self.calculate_hash(str(request_key))
             print("I CALCULATED THE HASH AS: %s", request_key)
 
-        if request_key in self.data_dict:
+        if (request_key in self.data_dict) \
+                or (self.node_id >= request_key > self.start) \
+                or (self.node_id < self.start < request_key)\
+                or (self.start > self.node_id >= request_key):
             self.data_dict[request_key] = request_val
+            print("KEY IS IN ME!")
             conn.senddata('PUTX', json.dumps('success'))
             return
 
-        self.finger_table['NONE'] = self.node_id
-        ids = self.finger_table.values()
+#        self.finger_table['NONE'] = self.node_id
+        ids = self.finger_table.keys()
         ids.sort()
-        index = bisect.bisect_right(self.id_set, request_key)
-        self.finger_table['NONE'] = None
+        to_node = None
+        if request_key < ids[0]:
+            to_node = self.successor
+            print("SENDING TO SUCCESSOR %d", self.successor)
+        else:
+            for ind in range(len(ids)):
+                if ids[ind] > request_key:
+                    to_node = self.finger_table[ids[ind - 1]]
+                    break
 
-        print("FOUND INDEX: " + str(index))
-        print("SORTED IDS: " + str(ids))
-        if len(self.id_set) != 0:
-            index = index % len(self.id_set)
+        if to_node is None:
+            # find the largest key's value
+            to_node = self.finger_table[ids[len(ids) - 1]]
 
-        if ids[index] > self.node_id > request_key:
-            self.data_dict[request_key] = request_val
-            print("I PUT IT!!")
-            conn.senddata('PUTX', json.dumps('success'))
-            return
-
-        to_node = ids[index]
-
-        print(to_node)
-        print(self.node.peers)
-        if to_node not in self.node.peers:
-            to_node = str(to_node).decode("utf-8")
-            print("I HAVE IT!!")
-        print(self.node.peers[to_node])
         response = self.node.sendtopeer(to_node, 'PUTX', json.dumps({'key': request_key, 'value': request_val, 'check': True}))
-        conn.senddata('PUTX', response)
+        conn.senddata('PUTX', json.dumps(json.loads(response[0][1])))
         return
 
     def get_request(self, conn, msg):
@@ -129,28 +126,35 @@ class Node:
 
     def create_finger_table(self):
         self.id_set = self.node.peers.keys()
+
+        # TODO this integer conversion may lead a problem!
         self.id_set = [int(x) for x in self.id_set if x is not 'server']
         self.id_set.append(self.node_id)
         self.id_set.sort()
 
         print(self.id_set)
 
-        index = bisect.bisect_left(self.id_set, self.node_id + 1)
+        index = bisect.bisect_left(self.id_set, self.node_id)
+
+        index2 = index
+        if index2 - 1 < 0 or self.id_set[index2 - 1] == self.node_id:
+            index2 = len(self.id_set)
+
+        self.start = self.id_set[index2 - 1]
+
+        print("START: " + str(self.start))
 
         print(index)
         if index == len(self.id_set):
             self.successor = self.node_id
         else:
             self.successor = self.id_set[index]
-        print("successor= %s", self.successor)
         for i in range(self.circle_size):
             num = (self.node_id + 2 ** i) % 2 ** self.circle_size
             id_found = bisect.bisect_right(self.id_set, num)
 
             if len(self.id_set) != 0:
                 id_found = id_found % len(self.id_set)
-
-            print("num: %s AND id_found:%s", num, id_found)
 
             if len(self.id_set) == 1:
                 self.finger_table[num] = self.node_id
