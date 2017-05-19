@@ -44,7 +44,15 @@ class Node:
 
             result = self.node.connectandsend(host, port, 'REQV', json.dumps({'start': self.start, 'end': self.node_id}))
 
-            self.data_dict = json.loads(result)
+            taken_dict = json.loads(result[0][1])['data_dict']
+
+            print("TAKEN DICTIONARY: " + str(taken_dict))
+
+            for (key, value) in taken_dict.items():
+                self.data_dict[int(key)] = value
+
+        else:
+            print("successor: " + str(self.successor))
 
         print("DATA_DICT:" + str(self.data_dict))
 
@@ -200,7 +208,7 @@ class Node:
 
         to_return = dict()
 
-        for (key, val) in self.data_dict:
+        for (key, val) in self.data_dict.items():
             if key_end >= key > key_start:
                 to_return[key] = val
                 del self.data_dict[key]
@@ -211,7 +219,7 @@ class Node:
                 to_return[key] = val
                 del self.data_dict[key]
 
-        conn.senddata('REQV', json.dumps({'data_dict': str(to_return)}))
+        conn.senddata('REQV', json.dumps({'data_dict': to_return}))
         return
 
     def connect_to_server(self, ip_address, port_num):
@@ -227,7 +235,7 @@ class Node:
 
         print(id_dictionary)
         for (key, value) in id_dictionary.items():
-            self.node.addpeer(key, value[0], value[1])
+            self.node.addpeer(int(key), value[0], value[1])
 
         self.node_id = json_response['id']
         self.node_ip = json_response['ip']
@@ -257,7 +265,8 @@ class Node:
         if index == len(self.id_set):
             self.successor = self.node_id
         else:
-            self.successor = self.id_set[index]
+            self.successor = self.id_set[(index + 1) % len(self.id_set)]
+
         for i in range(self.circle_size):
             num = (self.node_id + 2 ** i) % 2 ** self.circle_size
             id_found = bisect.bisect_right(self.id_set, num)
