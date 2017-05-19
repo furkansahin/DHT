@@ -20,12 +20,15 @@ class Server:
         self.node.mainloop()
 
     def request_handler(self, conn, msg):
+        self.node.checklivepeers()
         ip = conn.ip
         json_response = json.loads(msg)
         print("Json: %s" % json_response)
         port = json_response['port']
 
         hash = self.calculate_hash(ip)
+        self.node.removepeer(hash)
+
         message = json.dumps({"ip": ip, "id": hash, "idDictionary": self.node.peers, "m": self.circle_size})
 
         for (key, value) in self.node.peers.items():
