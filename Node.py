@@ -55,16 +55,27 @@ class Node:
             request_key = self.calculate_hash(str(request_key))
             print("I CALCULATED THE HASH AS: %s", request_key)
 
-        if (request_key in self.data_dict) \
-                or (self.node_id >= request_key > self.start) \
-                or (self.node_id < self.start < request_key)\
-                or (self.start > self.node_id >= request_key):
+        to_node = self.is_in_me(request_key)
+
+        if to_node == self.node_id:
             self.data_dict[request_key] = request_val
             print("KEY IS IN ME!")
             conn.senddata('PUTX', json.dumps('success'))
             return
+        else:
+            response = self.node.sendtopeer(to_node, 'PUTX',
+                                            json.dumps({'key': request_key, 'value': request_val, 'check': True}))
+            conn.senddata('PUTX', json.dumps(json.loads(response[0][1])))
+            return
 
-#        self.finger_table['NONE'] = self.node_id
+    def is_in_me(self,request_key):
+        if (request_key in self.data_dict) \
+                or (self.node_id >= request_key > self.start) \
+                or (self.node_id < self.start < request_key) \
+                or (self.start > self.node_id >= request_key):
+            return self.node_id
+
+            #        self.finger_table['NONE'] = self.node_id
         ids = self.finger_table.keys()
         ids.sort()
         to_node = None
@@ -81,19 +92,82 @@ class Node:
             # find the largest key's value
             to_node = self.finger_table[ids[len(ids) - 1]]
 
-        response = self.node.sendtopeer(to_node, 'PUTX', json.dumps({'key': request_key, 'value': request_val, 'check': True}))
-        conn.senddata('PUTX', json.dumps(json.loads(response[0][1])))
-        return
+        return to_node
 
     def get_request(self, conn, msg):
-        key = msg
-        return
+        time.sleep(1)
+        json_msg = json.loads(msg)
+        request_key = json_msg['key']
+        check = json_msg['check']
+
+        if check is False:
+            request_key = self.calculate_hash(str(request_key))
+            print("I CALCULATED THE HASH AS: %s", request_key)
+
+        to_node = self.is_in_me(request_key)
+
+        if to_node == self.node_id:
+            if self.data_dict.has_key(request_key):
+                val = self.data_dict[request_key]
+            else:
+                val = None
+            print("KEY IS IN ME!")
+            conn.senddata('GETX', json.dumps(val))
+            return
+        else:
+            response = self.node.sendtopeer(to_node, 'GETX',
+                                            json.dumps({'key': request_key, 'check': True}))
+            conn.senddata('GETX', json.dumps(json.loads(response[0][1])))
+            return
 
     def contains_request(self, conn, msg):
-        return
+        time.sleep(1)
+        json_msg = json.loads(msg)
+        request_key = json_msg['key']
+        check = json_msg['check']
+
+        if check is False:
+            request_key = self.calculate_hash(str(request_key))
+            print("I CALCULATED THE HASH AS: %s", request_key)
+
+        to_node = self.is_in_me(request_key)
+
+        if to_node == self.node_id:
+            val = self.data_dict.has_key(request_key)
+            print("KEY IS IN ME!")
+            conn.senddata('CONT', json.dumps(val))
+            return
+        else:
+            response = self.node.sendtopeer(to_node, 'CONT',
+                                            json.dumps({'key': request_key, 'check': True}))
+            conn.senddata('CONT', json.dumps(json.loads(response[0][1])))
+            return
 
     def remove_request(self, conn, msg):
-        return
+        time.sleep(1)
+        json_msg = json.loads(msg)
+        request_key = json_msg['key']
+        check = json_msg['check']
+
+        if check is False:
+            request_key = self.calculate_hash(str(request_key))
+            print("I CALCULATED THE HASH AS: %s", request_key)
+
+        to_node = self.is_in_me(request_key)
+
+        if to_node == self.node_id:
+            val = self.data_dict.has_key(request_key)
+
+            if val:
+                del self.data_dict[request_key]
+            print("KEY IS IN ME!")
+            conn.senddata('RMVX', json.dumps(val))
+            return
+        else:
+            response = self.node.sendtopeer(to_node, 'RMVX',
+                                            json.dumps({'key': request_key, 'check': True}))
+            conn.senddata('RMVX', json.dumps(json.loads(response[0][1])))
+            return
 
     def new_node(self, conn, msg):
         json_response = json.loads(msg)

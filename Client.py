@@ -15,7 +15,10 @@ def main():
             c.put(int(parts[1]), int(parts[2]))
         elif parts[0] == 'GET':
             print('Value is ' + str(c.get(int(parts[1]))))
-
+        elif parts[0] == 'CONTAINS':
+            print('Value is ' + str(c.contains(int(parts[1]))))
+        elif parts[0] == 'REMOVE':
+            print('Value is ' + str(c.remove(int(parts[1]))))
 
 class Client:
     def __init__(self):
@@ -48,24 +51,24 @@ class Client:
         (ip, port) = index
 
         response = self.client.connectandsend(ip, port, "GETX", json.dumps({'key': key, 'check': False}))
-        return json.loads(response[0][1])['value']
+        return json.loads(response[0][1])
 
     def contains(self,key):
         id_set = self.get_id_set()
-        index = random.sample(id_set, 1)
+        index = random.sample(id_set, 1)[0]
 
-        (ip, port) = id_set(index)
+        (ip, port) = index
 
-        response = self.client.connectandsend(ip, port, "CONT", key)
+        response = self.client.connectandsend(ip, port, "CONT", json.dumps({'key': key, 'check': False}))
         return json.loads(response[0][1])
 
     def remove(self,key):
         id_set = self.get_id_set()
-        index = random.sample(id_set, 1)
+        index = random.sample(id_set, 1)[0]
 
-        (ip, port) = id_set(index)
+        (ip, port) = index
 
-        response = self.client.connectandsend(ip, port, "RMVX", key)
+        response = self.client.connectandsend(ip, port, "RMVX", json.dumps({'key': key, 'check': False}))
         return json.loads(response[0][1])
 
 
