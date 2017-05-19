@@ -34,9 +34,20 @@ class Node:
         self.node.addhandler('GETX', self.get_request)
         self.node.addhandler('CONT', self.contains_request)
         self.node.addhandler('RMVX', self.remove_request)
+        self.node.addhandler('REQV', self.request_values)
 
         self.create_finger_table()
         print(self.finger_table)
+
+        if self.successor != self.node_id:
+            (host, port) = self.node.peers[self.successor]
+
+            result = self.node.connectandsend(host, port, 'REQV', json.dumps({'start': self.start, 'end': self.node_id}))
+
+            self.data_dict = json.loads(result)
+
+        print("DATA_DICT:" + str(self.data_dict))
+
         self.node.mainloop()
 
     def calculate_hash(self, definition):
@@ -170,14 +181,38 @@ class Node:
             return
 
     def new_node(self, conn, msg):
+        prev_start = self.start
+
         json_response = json.loads(msg)
         new_id = json_response['id']
         new_ip = json_response['ip']
         new_port = json_response['port']
         self.node.addpeer(new_id, new_ip, new_port)
         self.create_finger_table()
+
         print(self.node.peers)
         print(self.finger_table)
+
+    def request_values(self, conn, msg):
+        json_req = json.loads(msg)
+        key_start = json_req['start']
+        key_end = json_req['end']
+
+        to_return = dict()
+
+        for (key, val) in self.data_dict:
+            if key_end >= key > key_start:
+                to_return[key] = val
+                del self.data_dict[key]
+            elif key_start > key_end >= key:
+                to_return[key] = val
+                del self.data_dict[key]
+            elif key > key_start > key_end:
+                to_return[key] = val
+                del self.data_dict[key]
+
+        conn.senddata('REQV', json.dumps({'data_dict': str(to_return)}))
+        return
 
     def connect_to_server(self, ip_address, port_num):
         self.node.addpeer('server', ip_address, port_num)
