@@ -17,6 +17,7 @@ class Node:
         print("Called")
 
         self.data_dict = dict()
+        self.data_dict_backup = dict()
         self.finger_table = dict()
         self.id_set = set()
         self.node_id = None
@@ -30,11 +31,16 @@ class Node:
         self.connect_to_server('207.154.219.184', '2222')
         self.node.addhandler('KQUE', self.incoming_query)
         self.node.addhandler('NEWN', self.new_node)
+        self.node.addhandler('DROP', self.drop_node)
         self.node.addhandler('PUTX', self.put_request)
+        self.node.addhandler('PUTY', self.put_request_backup)
         self.node.addhandler('GETX', self.get_request)
         self.node.addhandler('CONT', self.contains_request)
         self.node.addhandler('RMVX', self.remove_request)
         self.node.addhandler('REQV', self.request_values)
+        self.node.addhandler('REQB', self.request_backup)
+        self.node.addhandler('REDV', self.request_values_duplicate)
+        self.node.addhandler('REDB', self.request_backup_duplicate)
 
         self.create_finger_table()
         print(self.finger_table)
@@ -51,10 +57,21 @@ class Node:
             for (key, value) in taken_dict.items():
                 self.data_dict[int(key)] = value
 
+            (host, port) = self.node.peers[self.start]
+
+            result = self.node.connectandsend(host, port, 'REDV', json.dumps({'start': self.start, 'end': self.node_id}))
+
+            taken_dict = json.loads(result[0][1])['data_dict']
+
+            print("TAKEN BACKUP DICTIONARY: " + str(taken_dict))
+
+            for (key, value) in taken_dict.items():
+                self.data_dict_backup[int(key)] = value
         else:
             print("successor: " + str(self.successor))
 
         print("DATA_DICT:" + str(self.data_dict))
+        print("DATA_DICT_BACKUP:" + str(self.data_dict_backup))
 
         self.node.mainloop()
 
@@ -62,6 +79,15 @@ class Node:
         hex_hash = hashlib.sha1(definition).hexdigest()
         key = int(hex_hash, 16) % 2 ** self.circle_size
         return key
+
+    def put_request_backup(self, conn, msg):
+        time.sleep(1)
+        json_msg = json.loads(msg)
+        request_key = json_msg['key']
+        request_val = json_msg['value']
+        check = json_msg['check']
+        self.data_dict_backup[request_key] = request_val
+        return
 
     def put_request(self, conn, msg):
         time.sleep(1)
@@ -79,6 +105,7 @@ class Node:
         if to_node == self.node_id:
             self.data_dict[request_key] = request_val
             print("KEY IS IN ME!")
+            self.node.sendtopeer(self.start, 'PUTY', json.dumps({'key': request_key, 'value': request_val, 'check': False}))
             conn.senddata('PUTX', json.dumps('success'))
             return
         else:
@@ -201,6 +228,57 @@ class Node:
         print(self.node.peers)
         print(self.finger_table)
 
+    def drop_node(self,conn,msg):
+        json_response = json.loads(msg)
+        drop_id = json_response['id']
+
+        old_successor = self.successor
+        old_start = self.start
+
+        self.node.removepeer(drop_id)
+        self.create_finger_table()
+
+        if self.successor == self.node_id:
+            for (key, value) in self.data_dict_backup.items():
+                self.data_dict[int(key)] = value
+            self.data_dict_backup.clear()
+            return
+
+        print(" DROP CALLED ")
+
+        if drop_id == old_successor:
+            (host, port) = self.node.peers[self.successor]
+
+            print("HOST" + host)
+            result = self.node.sendtopeer(self.successor, 'REDV',
+                                              json.dumps({'start': old_successor, 'end': self.successor}))
+
+            print("RESULT:" + str(result))
+            taken_dict = json.loads(result[0][1])['data_dict']
+
+            print("TAKEN DICTIONARY: " + str(taken_dict))
+
+            for (key, value) in taken_dict.items():
+                self.data_dict_backup[int(key)] = value
+
+            return
+
+        if drop_id == old_start:
+            (host, port) = self.node.peers[self.start]
+            print("HOST" + host)
+
+            result = self.node.sendtopeer(self.start, 'REDB',
+                                              json.dumps({'start': self.start, 'end': old_start}))
+
+            taken_dict = json.loads(result[0][1])['data_dict']
+
+            print("TAKEN DICTIONARY: " + str(taken_dict))
+
+            for (key, value) in taken_dict.items():
+                self.data_dict[int(key)] = value
+
+            return
+
     def request_values(self, conn, msg):
         json_req = json.loads(msg)
         key_start = json_req['start']
@@ -220,6 +298,64 @@ class Node:
                 del self.data_dict[key]
 
         conn.senddata('REQV', json.dumps({'data_dict': to_return}))
+        return
+
+    def request_backup(self, conn, msg):
+        json_req = json.loads(msg)
+        key_start = json_req['start']
+        key_end = json_req['end']
+
+        to_return = dict()
+
+        for (key, val) in self.data_dict_backup.items():
+            if key_end >= key > key_start:
+                to_return[key] = val
+                del self.data_dict_backup[key]
+            elif key_start > key_end >= key:
+                to_return[key] = val
+                del self.data_dict_backup[key]
+            elif key > key_start > key_end:
+                to_return[key] = val
+                del self.data_dict_backup[key]
+
+        conn.senddata('REQB', json.dumps({'data_dict': to_return}))
+        return
+
+    def request_values_duplicate(self, conn, msg):
+        json_req = json.loads(msg)
+        key_start = json_req['start']
+        key_end = json_req['end']
+
+        to_return = dict()
+
+        for (key, val) in self.data_dict.items():
+            if key_end >= key > key_start:
+                to_return[key] = val
+            elif key_start > key_end >= key:
+                to_return[key] = val
+            elif key > key_start > key_end:
+                to_return[key] = val
+
+        print("REDV RESPONSE " + str(to_return))
+        conn.senddata('REDV', json.dumps({'data_dict': to_return}))
+        return
+
+    def request_backup_duplicate(self, conn, msg):
+        json_req = json.loads(msg)
+        key_start = json_req['start']
+        key_end = json_req['end']
+
+        to_return = dict()
+
+        for (key, val) in self.data_dict_backup.items():
+            if key_end >= key > key_start:
+                to_return[key] = val
+            elif key_start > key_end >= key:
+                to_return[key] = val
+            elif key > key_start > key_end:
+                to_return[key] = val
+
+        conn.senddata('REDB', json.dumps({'data_dict': to_return}))
         return
 
     def connect_to_server(self, ip_address, port_num):
