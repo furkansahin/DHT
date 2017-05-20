@@ -2,6 +2,7 @@ import json
 import hashlib
 import thread
 import btpeer
+import time, threading
 
 
 def main():
@@ -20,7 +21,7 @@ class Server:
         self.node.mainloop()
 
     def request_handler(self, conn, msg):
-        self.node.checklivepeers()
+        self.check_alives()
         ip = conn.ip
         json_response = json.loads(msg)
         print("Json: %s" % json_response)
@@ -33,7 +34,7 @@ class Server:
 
         for (key, value) in self.node.peers.items():
             print(key, value)
-            self.node.sendtopeer(key, 'NEWN', json.dumps({"id": hash, "ip": ip, "port": port}))
+            self.node.sendtopeer(key, 'NEWN', json.dumps({"id": hash, "ip": ip, "port": port}), waitreply=False)
 
         print(message)
         print("Adding")
@@ -44,7 +45,7 @@ class Server:
         conn.senddata("SWRQ", message)
 
     def client_request(self, conn, msg):
-        self.node.checklivepeers()
+        self.check_alives()
         print(self.node.peers)
         keys = self.node.peers.values()
 
@@ -59,6 +60,13 @@ class Server:
         message = json.dumps({"ip": ip_to_be_sent, "id": key})
         # send(message, ip_to_sent)
 
+    def check_alives(self):
+        deleted = self.node.checklivepeers()
+        for delete in deleted:
+            for (key, value) in self.node.peers.items():
+                self.node.sendtopeer(key, 'DROP', json.dumps({"id": delete}),waitreply=False)
+
+        threading.Timer(10, self.check_alives).start()
 
 if __name__ == "__main__":
     main()
