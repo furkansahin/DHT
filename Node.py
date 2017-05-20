@@ -34,6 +34,7 @@ class Node:
         self.node.addhandler('GETX', self.get_request)
         self.node.addhandler('CONT', self.contains_request)
         self.node.addhandler('RMVX', self.remove_request)
+        self.node.addhandler('RMVY', self.remove_request_backup)
         self.node.addhandler('REQV', self.request_values)
         self.node.addhandler('REQB', self.request_backup)
         self.node.addhandler('REDV', self.request_values_duplicate)
@@ -57,8 +58,8 @@ class Node:
 
             (host, port) = self.node.peers[self.start]
 
-            result = self.node.connectandsend(host, port, 'REDV',
-                                              json.dumps({'start': self.start, 'end': self.node_id}))
+            result = self.node.connectandsend(host, port, 'REQB',
+                                              json.dumps({'start': self.node_id, 'end': self.successor}))
 
             taken_dict = json.loads(result[0][1])['data_dict']
 
@@ -73,7 +74,13 @@ class Node:
  #       print("DATA_DICT:" + str(self.data_dict))
  #       print("DATA_DICT_BACKUP:" + str(self.data_dict_backup))
 
+        self.dict_print()
         self.node.mainloop()
+
+    def dict_print(self):
+        print("Dictionaries of: " + str(self.node_id))
+        print ("Dict: " + str(self.data_dict))
+        print ("BackupDict: " + str(self.data_dict_backup))
 
     def calculate_hash(self, definition):
         hex_hash = hashlib.sha1(definition).hexdigest()
@@ -81,12 +88,24 @@ class Node:
         return key
 
     def put_request_backup(self, conn, msg):
-        time.sleep(1)
         json_msg = json.loads(msg)
         request_key = json_msg['key']
         request_val = json_msg['value']
         check = json_msg['check']
         self.data_dict_backup[request_key] = request_val
+
+        print("Print after backup put")
+        self.dict_print()
+        return
+
+    def remove_request_backup(self, conn, msg):
+        json_msg = json.loads(msg)
+        request_key = json_msg['key']
+
+        del self.data_dict_backup[request_key]
+
+        print("Print after backup remove")
+        self.dict_print()
         return
 
     def put_request(self, conn, msg):
@@ -108,6 +127,9 @@ class Node:
 
             self.node.sendtopeer(self.start, 'PUTY',
                                  json.dumps({'key': request_key, 'value': request_val, 'check': False}))
+
+            print("Print after put")
+            self.dict_print()
             return
         else:
             response = self.node.sendtopeer(to_node, 'PUTX',
@@ -205,7 +227,12 @@ class Node:
             if val:
                 del self.data_dict[request_key]
 #            print("KEY IS IN ME!")
+            self.node.sendtopeer(self.start, 'RMVY',
+                                 json.dumps({'key': request_key, 'check': False}))
+
             conn.senddata('RMVX', json.dumps(val))
+            print("Print after remove")
+            self.dict_print()
             return
         else:
             response = self.node.sendtopeer(to_node, 'RMVX',
@@ -221,6 +248,9 @@ class Node:
         new_port = json_response['port']
         self.node.addpeer(new_id, new_ip, new_port)
         self.create_finger_table()
+
+        print("Print after newnode")
+        self.dict_print()
 
 #        print(self.node.peers)
 #        print(self.finger_table)
@@ -239,6 +269,9 @@ class Node:
             for (key, value) in self.data_dict_backup.items():
                 self.data_dict[int(key)] = value
             self.data_dict_backup.clear()
+            self.data_dict_backup = dict(self.data_dict)
+            print("Print after drop")
+            self.dict_print()
             return
 
 #        print(" DROP CALLED ")
@@ -258,6 +291,9 @@ class Node:
             for (key, value) in taken_dict.items():
                 self.data_dict_backup[int(key)] = value
 
+            print("Print after drop")
+            self.dict_print()
+
             return
 
         if drop_id == old_start:
@@ -273,6 +309,9 @@ class Node:
 
             for (key, value) in taken_dict.items():
                 self.data_dict[int(key)] = value
+
+            print("Print after drop")
+            self.dict_print()
 
             return
 
@@ -295,6 +334,10 @@ class Node:
                 del self.data_dict[key]
 
         conn.senddata('REQV', json.dumps({'data_dict': to_return}))
+
+        print("Print after requested val")
+        self.dict_print()
+
         return
 
     def request_backup(self, conn, msg):
@@ -316,6 +359,10 @@ class Node:
                 del self.data_dict_backup[key]
 
         conn.senddata('REQB', json.dumps({'data_dict': to_return}))
+
+        print("Print after requested back")
+        self.dict_print()
+
         return
 
     def request_values_duplicate(self, conn, msg):
@@ -382,8 +429,6 @@ class Node:
         self.id_set.append(self.node_id)
         self.id_set.sort()
 
-#        print(self.id_set)
-
         index = bisect.bisect_left(self.id_set, self.node_id)
 
         index2 = index
@@ -392,9 +437,6 @@ class Node:
 
         self.start = self.id_set[index2 - 1]
 
-#        print("START: " + str(self.start))
-
-        print(index)
         if index == len(self.id_set):
             self.successor = self.node_id
         else:

@@ -17,10 +17,10 @@ class Server:
         print(self.node.serverhost)
         self.node.addhandler('SWRQ', self.request_handler)
         self.node.addhandler('PSET', self.client_request)
+        self.check_alives()
         self.node.mainloop()
 
     def request_handler(self, conn, msg):
-        self.check_alives()
         ip = conn.ip
         json_response = json.loads(msg)
         print("Json: %s" % json_response)
@@ -44,7 +44,6 @@ class Server:
         conn.senddata("SWRQ", message)
 
     def client_request(self, conn, msg):
-        self.check_alives()
         print(self.node.peers)
         keys = self.node.peers.values()
 
