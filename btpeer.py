@@ -339,6 +339,7 @@ class BTPeer:
         finally:
             self.peerlock.release()
 
+        return todelete
     # end checklivepeers method
 
 
