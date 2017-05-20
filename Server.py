@@ -1,17 +1,16 @@
 import json
 import hashlib
-import thread
 import btpeer
-import time, threading
+import threading
 
 
 def main():
-    Server(7)
+    Server(30)
 
 
 class Server:
     def __init__(self, circle_size):
-        print("Called")
+#        print("Called")
         self.nodes = dict()
         self.circle_size = circle_size
         self.node = btpeer.BTPeer(0, 2222)
@@ -21,7 +20,7 @@ class Server:
         self.node.mainloop()
 
     def request_handler(self, conn, msg):
-        self.check_alives()
+        self.check_alive()
         ip = conn.ip
         json_response = json.loads(msg)
         print("Json: %s" % json_response)
@@ -45,8 +44,8 @@ class Server:
         conn.senddata("SWRQ", message)
 
     def client_request(self, conn, msg):
-        self.check_alives()
-        print(self.node.peers)
+        self.check_alive()
+#        print(self.node.peers)
         keys = self.node.peers.values()
 
         conn.senddata('PSET', json.dumps(keys))
@@ -56,17 +55,13 @@ class Server:
         key = int(hex_hash, 16) % 2 ** self.circle_size
         return key
 
-    def send_new_node(self, ip_to_sent, ip_to_be_sent, key):
-        message = json.dumps({"ip": ip_to_be_sent, "id": key})
-        # send(message, ip_to_sent)
-
-    def check_alives(self):
+    def check_alive(self):
         deleted = self.node.checklivepeers()
         for delete in deleted:
             for (key, value) in self.node.peers.items():
-                self.node.sendtopeer(key, 'DROP', json.dumps({"id": delete}),waitreply=False)
+                self.node.sendtopeer(key, 'DROP', json.dumps({"id": delete}), waitreply=False)
 
-        threading.Timer(10, self.check_alives).start()
+        threading.Timer(10, self.check_alive).start()
 
 if __name__ == "__main__":
     main()

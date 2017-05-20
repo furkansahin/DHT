@@ -1,5 +1,12 @@
-scp Server.py $Server:.
-scp Node.py $Client1:.
-scp Node.py $Client2:.
-scp Node.py $Client3:.
-scp Client.py root@138.68.75.161:.
+scp Node.py root@207.154.224.143:DHT/
+scp Node.py root@207.154.225.67:DHT/
+scp Node.py root@207.154.225.237:DHT/
+scp Node.py root@138.68.72.172:DHT/
+scp Node.py root@139.59.143.18:DHT/
+scp Node.py root@139.59.156.214:DHT/
+scp Node.py root@139.59.155.117:DHT/
+scp Node.py root@46.101.233.233:DHT/
+scp Node.py root@46.101.124.131:DHT/
+scp Node.py root@188.166.160.186:DHT/
+scp Client.py root@138.68.75.161:DHT/
+scp Server.py rooot@207.154.219.184:DHT/

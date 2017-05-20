@@ -3,23 +3,6 @@ import random
 import btpeer
 
 
-def main():
-    c = Client()
-
-    while True:
-        cmd = raw_input("COMMAND: ")
-        parts = cmd.split(" ")
-        if parts[0] == 'PUT':
-            print(int(parts[1]))
-            print(int(parts[2]))
-            c.put(int(parts[1]), int(parts[2]))
-        elif parts[0] == 'GET':
-            print('Value is ' + str(c.get(int(parts[1]))))
-        elif parts[0] == 'CONTAINS':
-            print('Value is ' + str(c.contains(int(parts[1]))))
-        elif parts[0] == 'REMOVE':
-            print('Value is ' + str(c.remove(int(parts[1]))))
-
 class Client:
     def __init__(self):
         self.server = '207.154.219.184'
@@ -40,7 +23,8 @@ class Client:
 
         (ip, port) = index
 
-        response = self.client.connectandsend(ip, port, "PUTX", json.dumps({'key': key, 'value': value, 'check': False}))
+        response = self.client.connectandsend(ip, port, "PUTX",
+                                              json.dumps({'key': key, 'value': value, 'check': False}))
         print(response)
         return json.loads(response[0][1])
 
@@ -53,7 +37,7 @@ class Client:
         response = self.client.connectandsend(ip, port, "GETX", json.dumps({'key': key, 'check': False}))
         return json.loads(response[0][1])
 
-    def contains(self,key):
+    def contains(self, key):
         id_set = self.get_id_set()
         index = random.sample(id_set, 1)[0]
 
@@ -62,7 +46,7 @@ class Client:
         response = self.client.connectandsend(ip, port, "CONT", json.dumps({'key': key, 'check': False}))
         return json.loads(response[0][1])
 
-    def remove(self,key):
+    def remove(self, key):
         id_set = self.get_id_set()
         index = random.sample(id_set, 1)[0]
 
@@ -70,7 +54,3 @@ class Client:
 
         response = self.client.connectandsend(ip, port, "RMVX", json.dumps({'key': key, 'check': False}))
         return json.loads(response[0][1])
-
-
-if __name__ == "__main__":
-    main()

@@ -1,0 +1,6 @@
+.ccache
+build
+*.jar
+.*
+/.git
+/.git/
