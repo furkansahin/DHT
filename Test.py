@@ -4,7 +4,7 @@ import Client
 
 
 def main():
-    c = Client
+    c = Client()
 
     put_dict = dict()
     total_time = 0

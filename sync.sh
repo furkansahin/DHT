@@ -9,4 +9,4 @@ scp Node.py root@46.101.233.233:DHT/
 scp Node.py root@46.101.124.131:DHT/
 scp Node.py root@188.166.160.186:DHT/
 scp Client.py root@138.68.75.161:DHT/
-scp Server.py rooot@207.154.219.184:DHT/
+scp Server.py root@207.154.219.184:DHT/

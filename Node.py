@@ -70,8 +70,8 @@ class Node:
             #            print("successor: " + str(self.successor))
             5
 
-        print("DATA_DICT:" + str(self.data_dict))
-        print("DATA_DICT_BACKUP:" + str(self.data_dict_backup))
+ #       print("DATA_DICT:" + str(self.data_dict))
+ #       print("DATA_DICT_BACKUP:" + str(self.data_dict_backup))
 
         self.node.mainloop()
 
@@ -104,9 +104,10 @@ class Node:
         if to_node == self.node_id:
             self.data_dict[request_key] = request_val
 #            print("KEY IS IN ME!")
+            conn.senddata('PUTX', json.dumps('success'))
+
             self.node.sendtopeer(self.start, 'PUTY',
                                  json.dumps({'key': request_key, 'value': request_val, 'check': False}))
-            conn.senddata('PUTX', json.dumps('success'))
             return
         else:
             response = self.node.sendtopeer(to_node, 'PUTX',
