@@ -12,7 +12,7 @@ def main():
 class Node:
     def __init__(self):
 
-#        print("Called")
+        #        print("Called")
 
         self.data_dict = dict()
         self.data_dict_backup = dict()
@@ -41,7 +41,7 @@ class Node:
         self.node.addhandler('REDB', self.request_backup_duplicate)
 
         self.create_finger_table()
-        print(self.finger_table)
+        #        print(self.finger_table)
 
         if self.successor != self.node_id:
             (host, port) = self.node.peers[self.successor]
@@ -68,19 +68,19 @@ class Node:
             for (key, value) in taken_dict.items():
                 self.data_dict_backup[int(key)] = value
         else:
-            #            print("successor: " + str(self.successor))
-            5
+            print("successor: " + str(self.successor))
 
- #       print("DATA_DICT:" + str(self.data_dict))
- #       print("DATA_DICT_BACKUP:" + str(self.data_dict_backup))
+        print("DATA_DICT:" + str(self.data_dict))
+        print("DATA_DICT_BACKUP:" + str(self.data_dict_backup))
 
         self.dict_print()
         self.node.mainloop()
 
     def dict_print(self):
-        print("Dictionaries of: " + str(self.node_id))
-        print ("Dict: " + str(self.data_dict))
-        print ("BackupDict: " + str(self.data_dict_backup))
+        # print("Dictionaries of: " + str(self.node_id))
+        # print ("Dict: " + str(self.data_dict))
+        # print ("BackupDict: " + str(self.data_dict_backup))
+        5
 
     def calculate_hash(self, definition):
         hex_hash = hashlib.sha1(definition).hexdigest()
@@ -94,7 +94,7 @@ class Node:
         check = json_msg['check']
         self.data_dict_backup[request_key] = request_val
 
-        print("Print after backup put")
+        #        print("Print after backup put")
         self.dict_print()
         return
 
@@ -104,7 +104,7 @@ class Node:
 
         del self.data_dict_backup[request_key]
 
-        print("Print after backup remove")
+        #        print("Print after backup remove")
         self.dict_print()
         return
 
@@ -116,18 +116,22 @@ class Node:
 
         if check is False:
             request_key = self.calculate_hash(str(request_key))
-#            print("I CALCULATED THE HASH AS: %s", request_key)
+            print("I CALCULATED THE HASH AS: " + str(request_key))
 
         to_node = self.is_in_me(request_key)
 
         if to_node == self.node_id:
             self.data_dict[request_key] = request_val
-#            print("KEY IS IN ME!")
+            print("KEY IS IN ME!")
+            print("key: " + str(request_key))
+            print("val: " + str(request_val))
             conn.senddata('PUTX', json.dumps('success'))
 
-            self.node.sendtopeer(self.start, 'PUTY',
-                                 json.dumps({'key': request_key, 'value': request_val, 'check': False}))
-
+            if self.start != self.node_id:
+                self.node.sendtopeer(self.start, 'PUTY',
+                                     json.dumps({'key': request_key, 'value': request_val, 'check': False}))
+            else:
+                self.data_dict_backup[request_key] = request_val
             print("Print after put")
             self.dict_print()
             return
@@ -144,13 +148,11 @@ class Node:
                 or (self.start > self.node_id >= request_key):
             return self.node_id
 
-            #        self.finger_table['NONE'] = self.node_id
         ids = self.finger_table.keys()
         ids.sort()
         to_node = None
         if request_key < ids[0]:
             to_node = self.successor
-#            print("SENDING TO SUCCESSOR %d", self.successor)
         else:
             for ind in range(len(ids)):
                 if ids[ind] > request_key:
@@ -170,8 +172,7 @@ class Node:
 
         if check is False:
             request_key = self.calculate_hash(str(request_key))
-#            print("I CALCULATED THE HASH AS: %s", request_key)
-
+            print("I CALCULATED THE HASH AS: " + str(request_key))
         to_node = self.is_in_me(request_key)
 
         if to_node == self.node_id:
@@ -179,7 +180,9 @@ class Node:
                 val = self.data_dict[request_key]
             else:
                 val = None
-#            print("KEY IS IN ME!")
+            print("KEY IS IN ME!")
+            print("key: " + str(request_key))
+            print("val: " + str(val))
             conn.senddata('GETX', json.dumps(val))
             return
         else:
@@ -195,13 +198,14 @@ class Node:
 
         if check is False:
             request_key = self.calculate_hash(str(request_key))
- #           print("I CALCULATED THE HASH AS: %s", request_key)
-
+            print("I CALCULATED THE HASH AS: " + str(request_key))
         to_node = self.is_in_me(request_key)
 
         if to_node == self.node_id:
             val = self.data_dict.has_key(request_key)
-#            print("KEY IS IN ME!")
+            print("KEY IS IN ME!")
+            print("key: " + str(request_key))
+            print("val: " + str(val))
             conn.senddata('CONT', json.dumps(val))
             return
         else:
@@ -217,8 +221,7 @@ class Node:
 
         if check is False:
             request_key = self.calculate_hash(str(request_key))
-#            print("I CALCULATED THE HASH AS: %s", request_key)
-
+            print("I CALCULATED THE HASH AS: " + str(request_key))
         to_node = self.is_in_me(request_key)
 
         if to_node == self.node_id:
@@ -226,12 +229,21 @@ class Node:
 
             if val:
                 del self.data_dict[request_key]
-#            print("KEY IS IN ME!")
-            self.node.sendtopeer(self.start, 'RMVY',
-                                 json.dumps({'key': request_key, 'check': False}))
+            print("KEY IS IN ME!")
+            print("key: " + str(request_key))
+            print("val: " + str(val))
 
+            print (self.start != self.node_id)
+
+            if self.start != self.node_id:
+                self.node.sendtopeer(self.start, 'RMVY',
+                                     json.dumps({'key': request_key, 'check': False}))
+            else:
+                del self.data_dict_backup[request_key]
+
+            print(val)
             conn.senddata('RMVX', json.dumps(val))
-            print("Print after remove")
+            #            print("Print after remove")
             self.dict_print()
             return
         else:
@@ -252,9 +264,6 @@ class Node:
         print("Print after newnode")
         self.dict_print()
 
-#        print(self.node.peers)
-#        print(self.finger_table)
-
     def drop_node(self, conn, msg):
         json_response = json.loads(msg)
         drop_id = json_response['id']
@@ -274,19 +283,12 @@ class Node:
             self.dict_print()
             return
 
-#        print(" DROP CALLED ")
-
         if drop_id == old_successor:
-            (host, port) = self.node.peers[self.successor]
 
-#            print("HOST" + host)
             result = self.node.sendtopeer(self.successor, 'REDV',
                                           json.dumps({'start': old_successor, 'end': self.successor}))
 
-#            print("RESULT:" + str(result))
             taken_dict = json.loads(result[0][1])['data_dict']
-
-#            print("TAKEN DICTIONARY: " + str(taken_dict))
 
             for (key, value) in taken_dict.items():
                 self.data_dict_backup[int(key)] = value
@@ -297,15 +299,11 @@ class Node:
             return
 
         if drop_id == old_start:
-            (host, port) = self.node.peers[self.start]
-#            print("HOST" + host)
 
             result = self.node.sendtopeer(self.start, 'REDB',
                                           json.dumps({'start': self.start, 'end': old_start}))
 
             taken_dict = json.loads(result[0][1])['data_dict']
-
-#            print("TAKEN DICTIONARY: " + str(taken_dict))
 
             for (key, value) in taken_dict.items():
                 self.data_dict[int(key)] = value
@@ -380,7 +378,6 @@ class Node:
             elif key > key_start > key_end:
                 to_return[key] = val
 
-#        print("REDV RESPONSE " + str(to_return))
         conn.senddata('REDV', json.dumps({'data_dict': to_return}))
         return
 
@@ -408,12 +405,10 @@ class Node:
         message = json.dumps({"port": self.node.serverport})
 
         response = self.node.sendtopeer('server', 'swrq', message)
-#        print(response)
         json_response = json.loads(response[0][1])
 
         id_dictionary = json_response['idDictionary']
 
-#        print(id_dictionary)
         for (key, value) in id_dictionary.items():
             self.node.addpeer(int(key), value[0], value[1])
 
@@ -424,7 +419,6 @@ class Node:
     def create_finger_table(self):
         self.id_set = self.node.peers.keys()
 
-        # TODO this integer conversion may lead a problem!
         self.id_set = [int(x) for x in self.id_set if x is not 'server']
         self.id_set.append(self.node_id)
         self.id_set.sort()

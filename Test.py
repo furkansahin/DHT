@@ -4,11 +4,14 @@ import Client
 
 
 def main():
-    c = Client()
 
     put_dict = dict()
     total_time = 0
     total_local_time = 0
+    total_local_get_time = 0
+    total_local_contains_time = 0
+    total_local_remove_time = 0
+
     while True:
         cmd = raw_input("COMMAND: ")
         parts = cmd.split(" ")
@@ -20,29 +23,48 @@ def main():
 
                 ts_local = time.time()
                 put_dict[key] = val
-
                 ts = time.time()
-
-                c.put(key, val)
-                tf = time.time()
-
                 total_local_time = total_local_time + ts - ts_local
-                total_time = total_time + tf - ts
+
         elif parts[0] == 'GET':
+            ts = time.time()
             for (key, val) in put_dict.items():
-                if val == int(c.get(key)):
+                if val != None:
                     print("SUCCESS")
                 else:
                     print("FAILED!")
                     break
+            total_local_get_time += time.time() - ts
         elif parts[0] == 'CONTAINS':
-            print('Value is ' + str(c.contains(int(parts[1]))))
+            keys = put_dict.keys()
+
+            ts = time.time()
+            for key in keys:
+                if key in put_dict:
+                    print("SUCCESS")
+                else:
+                    print("FAILED!")
+                    break
+
+            total_local_contains_time += time.time() - ts
         elif parts[0] == 'REMOVE':
-            print('Value is ' + str(c.remove(int(parts[1]))))
+            keys = put_dict.keys()
 
-        print("TOTAL Put time: " + str(total_time))
-        print("TOTAL local Put time: " + str(total_time))
+            ts = time.time()
+            for key in keys:
+                del put_dict[key]
+            total_local_remove_time += time.time() - ts
 
+
+        print("TOTAL Put time: " + str(total_local_time))
+        print("TOTAL Get time: " + str(total_local_get_time))
+        print("TOTAL Contains time: " + str(total_local_contains_time))
+        print("TOTAL Remove Put time: " + str(total_local_remove_time))
+
+        total_local_time = 0
+        total_local_get_time = 0
+        total_local_contains_time = 0
+        total_local_remove_time = 0
 
 if __name__ == "__main__":
     main()

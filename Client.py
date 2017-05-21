@@ -11,12 +11,19 @@ def main():
     total_time_put = 0
     total_local_time_put = 0
     total_time_get = 0
-    total_local_time_get = 0
+    total_time_cont = 0
+    total_time_rem = 0
     while True:
         cmd = raw_input("COMMAND: ")
         parts = cmd.split(" ")
 
-        if parts[0] == 'PUT':
+        if parts[0] == 'PUT1':
+            key = int(parts[1])
+            value = int(parts[2])
+
+            c.put(key, value)
+
+        elif parts[0] == 'PUT':
             for i in range(int(parts[1])):
                 key = random.randint(0, 2 ** int(parts[2]))
                 val = random.randint(0, 2 ** int(parts[2]))
@@ -31,6 +38,11 @@ def main():
 
                 total_local_time_put = total_local_time_put + ts - ts_local
                 total_time_put = total_time_put + tf - ts
+        elif parts[0] == 'GET1':
+            key = int(parts[1])
+
+            val = c.get(key)
+            print("Value is: " + str(val))
         elif parts[0] == 'GET':
 
             for (key, val) in put_dict.items():
@@ -42,17 +54,52 @@ def main():
                 else:
                     print("FAILED!")
                     break
+        elif parts[0] == 'CONTAINS1':
+            key = int(parts[1])
+
+            val = c.contains(key)
+            print("Value is: " + str(val))
+
         elif parts[0] == 'CONTAINS':
-            print('Value is ' + str(c.contains(int(parts[1]))))
+            for (key, val) in put_dict.items():
+                ts = time.time()
+                val = c.contains(key)
+                total_time_cont += time.time() - ts
+                if str(val) == 'True':
+                    print("SUCCESS")
+                else:
+                    print("FAILED!")
+                    break
+
+        elif parts[0] == 'REMOVE1':
+            key = int(parts[1])
+
+            val = c.remove(key)
+            print("Value is: " + str(val))
+
         elif parts[0] == 'REMOVE':
-            print('Value is ' + str(c.remove(int(parts[1]))))
+            for (key, val) in put_dict.items():
+                ts = time.time()
+                val = c.remove(key)
+                total_time_rem += time.time() - ts
+                if str(val) == 'True':
+                    print("SUCCESS")
+                else:
+                    print("FAILED!")
+                    break
+                del put_dict[key]
 
         print("TOTAL Put time: " + str(total_time_put))
         print("TOTAL local Put time: " + str(total_local_time_put))
         print("TOTAL Get time: " + str(total_time_get))
+        print("TOTAL Contains time: " + str(total_time_cont))
+        print("TOTAL Remove time: " + str(total_time_rem))
+
         total_time_get = 0
         total_time_put = 0
         total_local_time_put = 0
+        total_time_cont = 0
+        total_time_rem = 0
 
 class Client:
     def __init__(self):
